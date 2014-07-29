@@ -165,9 +165,9 @@ function css2js(code, id, options, fileObj) {
     "seajs.importStyle('%s','%s')",
     '});'
   ].join('\n');
-
+  var comment = '/*' + id + '*/'
   // spmjs/spm#651
-  code = code.split(/\r\n|\r|\n/).map(function(line) {
+  code = comment + code.split(/\r\n|\r|\n/).map(function(line) {
     return line.replace(/\\/g, '\\\\');
   }).join('\n');
 
