@@ -162,7 +162,7 @@ function css2js(code, id, options, fileObj) {
   // spmjs/spm#581
   var tpl = [
     'define("%s", [], function() {',
-    "seajs.importStyle('%s')",
+    "seajs.importStyle('%s','%s')",
     '});'
   ].join('\n');
 
@@ -171,7 +171,7 @@ function css2js(code, id, options, fileObj) {
     return line.replace(/\\/g, '\\\\');
   }).join('\n');
 
-  code = format(tpl, id, code.replace(/\'/g, '\\\''));
+  code = format(tpl, id, code.replace(/\'/g, '\\\''),id);
   return code;
 }
 
