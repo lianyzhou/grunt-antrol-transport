@@ -1,7 +1,7 @@
 {
   "name": "grunt-antrol-transport",
   "description": "Transport javascript into cmd , Fork from grunt-cmd-transport",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "engines": {
     "node": ">= 0.8.0"
   },

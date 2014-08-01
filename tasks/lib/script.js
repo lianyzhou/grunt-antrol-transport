@@ -5,9 +5,26 @@ exports.init = function(grunt) {
   var _ = grunt.util._;
 
 
-  var exports = {};
-
+    var exports = {};
+    var depsMem = {};
+    var savedEntry;
+  	function normalize(id) {
+  		return id.replace(/\\/g , '/');
+  	}
+    function memDeps(id) {
+    	id = normalize(id);
+    	depsMem[id] = true;
+    }
+    function checkDepsMemed(id) {
+    	id = normalize(id);
+    	return depsMem[id]; 
+    }
+    
+  
   exports.jsParser = function(fileObj, options) {
+  	savedEntry = normalize(fileObj.src);
+  	depsMem = {};
+    
     grunt.log.verbose.writeln('Transport ' + fileObj.src + ' -> ' + fileObj.dest);
     var astCache, data = fileObj.srcData || grunt.file.read(fileObj.src);
     try {
@@ -16,7 +33,7 @@ exports.init = function(grunt) {
       grunt.log.error('js parse error ' + fileObj.src.red);
       grunt.fail.fatal(e.message + ' [ line:' + e.line + ', col:' + e.col + ', pos:' + e.pos + ' ]');
     }
-
+	
     var meta = ast.parseFirst(astCache);
 
     if (!meta) {
@@ -30,6 +47,7 @@ exports.init = function(grunt) {
     }
 
     var deps, depsSpecified = false;
+    
     if (meta.dependencyNode) {
       deps = meta.dependencies;
       depsSpecified = true;
@@ -49,6 +67,7 @@ exports.init = function(grunt) {
         return depsSpecified ? v : iduri.parseAlias(options, v);
       }
     });
+    
     data = astCache.print_to_string(options.uglify);
     grunt.file.write(fileObj.dest, addOuterBoxClass(data, options));
 
@@ -71,8 +90,7 @@ exports.init = function(grunt) {
     data = astCache.print_to_string(options.uglify);
     grunt.file.write(dest, addOuterBoxClass(data, options));
   };
-
-
+  
   // helpers
   // ----------------
   function unixy(uri) {
@@ -153,16 +171,24 @@ exports.init = function(grunt) {
 
   function parseDependencies(fpath, options) {
     var rootpath = fpath;
-
+    
     function relativeDependencies(fpath, options, basefile) {
+      
       if (basefile) {
         fpath = path.join(path.dirname(basefile), fpath);
       }
+      
       fpath = iduri.appendext(fpath);
-
+      
       var deps = [];
       var moduleDeps = {};
-
+	  
+      if(checkDepsMemed(fpath)) {
+      	return deps;
+      } else {
+		memDeps(fpath);      
+      }
+      
       if (!grunt.file.exists(fpath)) {
         if (!/\{\w+\}/.test(fpath)) {
           grunt.log.warn("can't find " + fpath);
@@ -179,7 +205,6 @@ exports.init = function(grunt) {
       parsed.dependencies.map(function(id) {
         return id.replace(/\.js$/, '');
       }).forEach(function(id) {
-
         if (id.charAt(0) === '.') {
           // fix nested relative dependencies
           if (basefile) {
@@ -217,8 +242,17 @@ exports.init = function(grunt) {
       });
       return deps;
     }
-
-    return relativeDependencies(fpath, options);
+    var retBak = relativeDependencies(fpath, options),
+    	ret = [],
+    	checkMap = {};
+	for(var i = 0 , len = retBak.length ; i < len ; i++) {
+		var key = normalize(iduri.appendext(path.join(path.dirname(fpath), retBak[i])));
+		if(!checkMap[key] && savedEntry !== key) {
+			ret.push(retBak[i]);
+		}
+		checkMap[key] = 1;
+	} 
+    return ret;
   }
 
   return exports;
